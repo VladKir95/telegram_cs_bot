@@ -56,22 +56,52 @@ export function Roulette({ items, targetItemId, spinToken, onSpinStart, onSpinEn
   const getApproxIndex = () => {
     const pitch = pitchRef.current;
     const center = centerRef.current;
+    const cardWidth = cardWidthRef.current;
     if (!pitch || !center) return 0;
     const currentCenter = -xRef.current + center;
-    return currentCenter / pitch - 0.5;
+    const hitPointOffset = cardWidth * STOP_HIT_RATIO;
+    return (currentCenter - hitPointOffset) / pitch;
+  };
+
+  const toWrappedIndex = (rawIndex: number) => ((rawIndex % items.length) + items.length) % items.length;
+
+  const getSequenceIndexAtMarker = () => {
+    const track = trackRef.current;
+    const center = centerRef.current;
+    if (!track || !track.children.length || !items.length || !center) return null;
+
+    const markerOnTrack = -xRef.current + center;
+    let bestIdx = 0;
+    let bestDistance = Number.POSITIVE_INFINITY;
+
+    for (let i = 0; i < track.children.length; i += 1) {
+      const card = track.children[i] as HTMLElement;
+      const hitPoint = card.offsetLeft + card.offsetWidth * STOP_HIT_RATIO;
+      const distance = Math.abs(hitPoint - markerOnTrack);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestIdx = i;
+      }
+    }
+
+    return bestIdx;
   };
 
   const normalizeTrackPosition = () => {
     const pitch = pitchRef.current;
     const center = centerRef.current;
     const cardWidth = cardWidthRef.current;
-    if (!pitch || !center || !cardWidth || !items.length) return;
+    const track = trackRef.current;
+    if (!pitch || !center || !cardWidth || !items.length || !track) return;
 
     const rawIndex = Math.round(getApproxIndex());
-    const wrappedIndex = ((rawIndex % items.length) + items.length) % items.length;
+    const wrappedIndex = toWrappedIndex(rawIndex);
     const normalizedIndex = BASE_REPEAT_INDEX * items.length + wrappedIndex;
-    const normalizedCenter = normalizedIndex * pitch + cardWidth * 0.5;
-    applyX(center - normalizedCenter);
+    const normalizedCard = track.children[normalizedIndex] as HTMLElement | undefined;
+    if (!normalizedCard) return;
+
+    const normalizedHitPoint = normalizedCard.offsetLeft + normalizedCard.offsetWidth * STOP_HIT_RATIO;
+    applyX(center - normalizedHitPoint);
   };
 
   useLayoutEffect(() => {
@@ -79,6 +109,11 @@ export function Roulette({ items, targetItemId, spinToken, onSpinStart, onSpinEn
       const viewport = viewportRef.current;
       const track = trackRef.current;
       if (!viewport || !track || !track.children.length) return;
+
+      const previousRawIndex =
+        pitchRef.current && centerRef.current && cardWidthRef.current
+          ? Math.round(getApproxIndex())
+          : BASE_REPEAT_INDEX * items.length;
 
       const first = track.children[0] as HTMLElement;
       const firstRect = first.getBoundingClientRect();
@@ -88,9 +123,13 @@ export function Roulette({ items, targetItemId, spinToken, onSpinStart, onSpinEn
       pitchRef.current = firstRect.width + gap;
       centerRef.current = viewport.clientWidth * 0.5;
 
-      const initialIndex = BASE_REPEAT_INDEX * items.length;
-      const targetCenter = initialIndex * pitchRef.current + cardWidthRef.current * 0.5;
-      applyX(centerRef.current - targetCenter);
+      const wrappedIndex = toWrappedIndex(previousRawIndex);
+      const normalizedIndex = BASE_REPEAT_INDEX * items.length + wrappedIndex;
+      const normalizedCard = track.children[normalizedIndex] as HTMLElement | undefined;
+      if (!normalizedCard) return;
+
+      const normalizedHitPoint = normalizedCard.offsetLeft + normalizedCard.offsetWidth * STOP_HIT_RATIO;
+      applyX(centerRef.current - normalizedHitPoint);
     };
 
     measure();
@@ -119,14 +158,16 @@ export function Roulette({ items, targetItemId, spinToken, onSpinStart, onSpinEn
 
     normalizeTrackPosition();
 
-    const currentCenter = -xRef.current + center;
-    const approxIndex = currentCenter / pitch - 0.5;
-    // Keep apparent speed close to the original by shortening both distance and duration ~25%.
+    const approxIndex = getApproxIndex();
+    // Keep right-to-left movement by targeting forward indices.
     const extraCycles = Math.random() < 0.75 ? 2 : 3;
     const cycleStart = Math.ceil(approxIndex / items.length) * items.length + items.length * extraCycles;
     const targetIndex = cycleStart + targetItemIndex;
 
-    const targetCardHitPoint = targetIndex * pitch + cardWidth * STOP_HIT_RATIO;
+    const targetCard = trackRef.current.children[targetIndex] as HTMLElement | undefined;
+    const targetCardHitPoint = targetCard
+      ? targetCard.offsetLeft + targetCard.offsetWidth * STOP_HIT_RATIO
+      : targetIndex * pitch + cardWidth * STOP_HIT_RATIO;
     const toX = center - targetCardHitPoint;
     const fromX = xRef.current;
     const duration = (3400 + Math.floor(Math.random() * 1400)) * 2.25;
@@ -171,7 +212,10 @@ export function Roulette({ items, targetItemId, spinToken, onSpinStart, onSpinEn
     const finishSpin = () => {
       if (cancelled) return;
       setIsSpinning(false);
-      onSpinEndRef.current(items[targetItemIndex]);
+      const landedSequenceIndex = getSequenceIndexAtMarker();
+      const landedItem =
+        (landedSequenceIndex !== null ? sequence[landedSequenceIndex] : null) ?? items[targetItemIndex];
+      onSpinEndRef.current(landedItem);
     };
 
     const runSpin = async () => {
