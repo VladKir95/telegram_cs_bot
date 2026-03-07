@@ -106,6 +106,7 @@ body {
 }
 
 .roulette-viewport {
+  position: relative;
   overflow: hidden;
 }
 

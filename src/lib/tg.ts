@@ -32,6 +32,17 @@ export function triggerWinHaptic(tg: TgWebApp | null): void {
   tg?.HapticFeedback?.impactOccurred?.('heavy');
 }
 
+export function triggerKnifeDropHaptic(tg: TgWebApp | null): void {
+  if (tg?.HapticFeedback?.impactOccurred) {
+    tg.HapticFeedback.impactOccurred('rigid');
+    return;
+  }
+
+  if (typeof navigator !== 'undefined' && typeof navigator.vibrate === 'function') {
+    navigator.vibrate(120);
+  }
+}
+
 export function openExternalLink(tg: TgWebApp | null, url: string): void {
   if (tg?.openLink) {
     tg.openLink(url);

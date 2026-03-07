@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { HeaderBar } from './HeaderBar';
 import { ResultPanel } from './ResultPanel';
 import { Roulette, type SkinItem } from './Roulette';
-import { initTelegram, getTelegramUser, openExternalLink, triggerWinHaptic } from '../lib/tg';
+import { initTelegram, getTelegramUser, openExternalLink, triggerKnifeDropHaptic, triggerWinHaptic } from '../lib/tg';
 import { buildFinalRedirectUrl, getIncomingParams } from '../lib/tracking';
 import { loadState, saveState } from '../lib/storage';
 
@@ -145,6 +145,7 @@ export function CasePage() {
     setLastWonItemId(item.id);
     setHasWon(won);
 
+    if (item.isKnife) triggerKnifeDropHaptic(tg);
     if (won) triggerWinHaptic(tg);
 
     persist({

@@ -65,28 +65,6 @@ export function Roulette({ items, targetItemId, spinToken, onSpinStart, onSpinEn
 
   const toWrappedIndex = (rawIndex: number) => ((rawIndex % items.length) + items.length) % items.length;
 
-  const getSequenceIndexAtMarker = () => {
-    const track = trackRef.current;
-    const center = centerRef.current;
-    if (!track || !track.children.length || !items.length || !center) return null;
-
-    const markerOnTrack = -xRef.current + center;
-    let bestIdx = 0;
-    let bestDistance = Number.POSITIVE_INFINITY;
-
-    for (let i = 0; i < track.children.length; i += 1) {
-      const card = track.children[i] as HTMLElement;
-      const hitPoint = card.offsetLeft + card.offsetWidth * STOP_HIT_RATIO;
-      const distance = Math.abs(hitPoint - markerOnTrack);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        bestIdx = i;
-      }
-    }
-
-    return bestIdx;
-  };
-
   const normalizeTrackPosition = () => {
     const pitch = pitchRef.current;
     const center = centerRef.current;
@@ -170,7 +148,7 @@ export function Roulette({ items, targetItemId, spinToken, onSpinStart, onSpinEn
       : targetIndex * pitch + cardWidth * STOP_HIT_RATIO;
     const toX = center - targetCardHitPoint;
     const fromX = xRef.current;
-    const duration = (3400 + Math.floor(Math.random() * 1400)) * 2.25;
+    const duration = 3500;
     lastProcessedSpinTokenRef.current = spinToken;
     const isKnifeFinish = targetItemId === 'knife-win';
 
@@ -212,10 +190,7 @@ export function Roulette({ items, targetItemId, spinToken, onSpinStart, onSpinEn
     const finishSpin = () => {
       if (cancelled) return;
       setIsSpinning(false);
-      const landedSequenceIndex = getSequenceIndexAtMarker();
-      const landedItem =
-        (landedSequenceIndex !== null ? sequence[landedSequenceIndex] : null) ?? items[targetItemIndex];
-      onSpinEndRef.current(landedItem);
+      onSpinEndRef.current(items[targetItemIndex]);
     };
 
     const runSpin = async () => {
@@ -265,8 +240,8 @@ export function Roulette({ items, targetItemId, spinToken, onSpinStart, onSpinEn
             })()
           ))}
         </div>
+        <div className="center-marker" aria-hidden="true" />
       </div>
-      <div className="center-marker" aria-hidden="true" />
     </section>
   );
 }
