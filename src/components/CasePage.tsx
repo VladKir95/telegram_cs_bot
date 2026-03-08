@@ -3,7 +3,6 @@ import { HeaderBar } from './HeaderBar';
 import { ResultPanel } from './ResultPanel';
 import { Roulette, type SkinItem } from './Roulette';
 import { initTelegram, getTelegramUser, openExternalLink, triggerKnifeDropHaptic, triggerWinHaptic } from '../lib/tg';
-import { buildFinalRedirectUrl, getIncomingParams } from '../lib/tracking';
 import { loadState, saveState } from '../lib/storage';
 
 const ITEMS: SkinItem[] = [
@@ -116,11 +115,8 @@ export function CasePage() {
 
   const tg = useMemo(() => initTelegram(), []);
   const user = useMemo(() => getTelegramUser(tg), [tg]);
-  const incomingParams = useMemo(() => getIncomingParams(), []);
 
   const firstName = user?.first_name || 'there';
-  const tgId = user?.id;
-
   const lastWonItem = lastWonItemId ? ITEMS.find((item) => item.id === lastWonItemId) ?? null : null;
 
   const persist = (next: { spinCount: number; lastWonItemId: string | null; hasWon: boolean }) => {
@@ -160,13 +156,7 @@ export function CasePage() {
       throw new Error('VITE_REFERRAL_URL is not set');
     }
 
-    const finalUrl = buildFinalRedirectUrl({
-      base: REFERRAL_URL,
-      incoming: incomingParams,
-      tgId,
-    });
-
-    openExternalLink(tg, finalUrl);
+    openExternalLink(tg, REFERRAL_URL);
   };
 
   return (
