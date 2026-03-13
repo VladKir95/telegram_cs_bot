@@ -21,7 +21,7 @@ type TelegramUpdate = {
   message?: TelegramMessage;
 };
 
-const START_MESSAGE = [
+const DEFAULT_START_MESSAGE = [
   'UNBOX 3 CASES FOR FREE.',
   'No deposit, no keys. Test your luck right now.',
   'Pull a High-tier item and activate it as a secret bonus.',
@@ -30,6 +30,7 @@ const START_MESSAGE = [
 async function sendStartMessage(chatId: number): Promise<void> {
   const botToken = process.env.BOT_TOKEN;
   const webAppUrl = process.env.WEBAPP_URL;
+  const startMessage = process.env.START_MESSAGE ?? DEFAULT_START_MESSAGE;
 
   if (!botToken) {
     throw new Error('BOT_TOKEN is not set');
@@ -46,7 +47,7 @@ async function sendStartMessage(chatId: number): Promise<void> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       chat_id: chatId,
-      text: START_MESSAGE,
+      text: startMessage,
       reply_markup: {
         inline_keyboard: [[{ text: 'Open Cases', web_app: { url: webAppUrl } }]],
       },
