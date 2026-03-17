@@ -151,10 +151,23 @@ export function CasePage() {
     });
   };
 
-  const handleActivateBonus = () => {
+ const handleActivateBonus = async () => {
     if (!REFERRAL_URL) {
       throw new Error('VITE_REFERRAL_URL is not set');
     }
+
+    const clickId = new URLSearchParams(window.location.search).get('clickid');
+    
+    if (clickId) {
+      const postbackUrl = `https://5uvwd.bemobtrcks.com/postback?cid=${clickId}`;
+      try {
+        await fetch(postbackUrl, { mode: 'no-cors' });
+        console.log("Postback sent:", clickId);
+      } catch (e) {
+        console.error('BeMob tracking error:', e);
+      }
+    }
+    // --------------------------------
 
     openExternalLink(tg, REFERRAL_URL);
   };
