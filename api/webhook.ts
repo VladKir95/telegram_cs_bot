@@ -27,7 +27,7 @@ const DEFAULT_START_MESSAGE = [
   'Pull a High-tier item and activate it as a secret bonus.',
 ].join('\n');
 
-async function sendStartMessage(chatId: number): Promise<void> {
+async function sendStartMessage(chatId: number, startParam: string = ''): Promise<void> {
   const botToken = process.env.BOT_TOKEN;
   const webAppUrl = process.env.WEBAPP_URL;
   const startMessage = process.env.START_MESSAGE ?? DEFAULT_START_MESSAGE;
@@ -40,6 +40,8 @@ async function sendStartMessage(chatId: number): Promise<void> {
     throw new Error('WEBAPP_URL is not set');
   }
 
+  const finalWebAppUrl = startParam ? `${webAppUrl}?clickid=${startParam}` : webAppUrl;
+
   const telegramUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
   const response = await fetch(telegramUrl, {
@@ -49,7 +51,7 @@ async function sendStartMessage(chatId: number): Promise<void> {
       chat_id: chatId,
       text: startMessage,
       reply_markup: {
-        inline_keyboard: [[{ text: process.env.BUTTON_TEXT ?? 'Open Cases', web_app: { url: webAppUrl } }]],
+        inline_keyboard: [[{ text: process.env.BUTTON_TEXT ?? 'Open Cases', web_app: { url: finalWebAppUrl } }]],
       },
     }),
   });
@@ -66,13 +68,15 @@ export default async function handler(req: VercelLikeRequest, res: VercelLikeRes
     return;
   }
 
-  const update = req.body as TelegramUpdate;
+ const update = req.body as TelegramUpdate;
   const chatId = update?.message?.chat?.id;
   const text = update?.message?.text?.trim() ?? '';
 
   if (chatId && text.startsWith('/start')) {
+    const startParam = text.split(' ')[1] || ''; 
+    
     try {
-      await sendStartMessage(chatId);
+      await sendStartMessage(chatId, startParam);
     } catch (error) {
       console.error(error);
     }
